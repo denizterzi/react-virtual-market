@@ -1,4 +1,4 @@
-import * as React from 'react';
+import React, {useState} from 'react';
 import Table from '@mui/material/Table';
 import TableBody from '@mui/material/TableBody';
 import TableCell from '@mui/material/TableCell';
@@ -6,84 +6,126 @@ import TableContainer from '@mui/material/TableContainer';
 import TableHead from '@mui/material/TableHead';
 import TableRow from '@mui/material/TableRow';
 import Paper from '@mui/material/Paper';
+import { getLocalStorage, setLocalStorage } from '../../localStorage';
+// import Badge from '@mui/material/Badge';
+import RemoveIcon from '@mui/icons-material/Remove';
+import ButtonGroup from '@mui/material/ButtonGroup';
+import Button from '@mui/material/Button';
+import AddIcon from '@mui/icons-material/Add';
+import DeleteOutlineOutlinedIcon from '@mui/icons-material/DeleteOutlineOutlined';
 
-const Basket = ({products}) => {
-
-  const TAX_RATE = 0.07;
-
-  console.log('products', products);  
+const Basket = () => {
+  const [isChange, setChange] = useState(false);
 
   function ccyFormat(num) {
     return `${num.toFixed(2)}`;
   }
 
-  function priceRow(qty, unit) {
-    return qty * unit;
-  }
-  
-  function createRow(desc, qty, unit) {
-    const price = priceRow(qty, unit);
-    return { desc, qty, unit, price };
-  }
-  
-  function subtotal(items) {
-    return items.map(({ price }) => price).reduce((sum, i) => sum + i, 0);
+  const modifiedList = getLocalStorage('modifiedList');
+
+
+  const invoiceTotal = modifiedList?.map((item) => (item.price*item.quantity)).reduce((sum, i) => sum + i, 0)
+
+  const addList = (currId) => {
+    const currentList = getLocalStorage('modifiedList');
+    const currVal = currentList.find(x => x.id === currId);
+    currVal.quantity = currVal.quantity + 1;
+    setLocalStorage('modifiedList', currentList);
+    const products = getLocalStorage('selectedProducts');
+    const addedProduct = products.find(x => x.id === currId);
+    setLocalStorage('selectedProducts', [...products, addedProduct])
+    setChange(!isChange);
   }
 
-  const rows = [
-    createRow('Paperclips (Box)', 100, 1.15),
-    createRow('Paper (Case)', 10, 45.99),
-    createRow('Waste Basket', 2, 17.99),
-  ];
+  const removeList = (currId) => {
+    let currentList = getLocalStorage('modifiedList');
+    const currVal = currentList.find(x => x.id === currId);
+    currVal.quantity = currVal.quantity - 1;
+    const products = getLocalStorage('selectedProducts');
+    if(currVal.quantity === 0){
+      currentList = currentList.filter(x => x.id !== currId);
+      setLocalStorage('selectedProducts', products.filter(x => x.id !== currId));
+      setChange(!isChange);
+    }
 
-  const invoiceSubtotal = subtotal(rows);
-  const invoiceTaxes = TAX_RATE * invoiceSubtotal;
-  const invoiceTotal = invoiceTaxes + invoiceSubtotal;
+    setLocalStorage('modifiedList', currentList);
+    setChange(!isChange);
+  }
+
+  const deleteBasket = () => {
+    setLocalStorage('selectedProducts', []);
+    setLocalStorage('modifiedList', []);
+    setChange(!isChange);
+  }
 
   return (
+    modifiedList?.length ? (
+      <div>
     <TableContainer component={Paper}>
-      <Table sx={{ minWidth: 700 }} aria-label="spanning table">
+      <Table  aria-label="spanning table">
         <TableHead>
-          <TableRow>
-            <TableCell align="center" colSpan={3}>
-              Details
-            </TableCell>
-            <TableCell align="right">Price</TableCell>
-          </TableRow>
           <TableRow>
             <TableCell>Desc</TableCell>
             <TableCell align="right">Qty.</TableCell>
-            <TableCell align="right">Unit</TableCell>
             <TableCell align="right">Sum</TableCell>
           </TableRow>
-        </TableHead>
+        </TableHead>  
         <TableBody>
-          {rows.map((row) => (
+          {modifiedList?.map((row) => (
             <TableRow key={row.desc}>
               <TableCell>{row.desc}</TableCell>
-              <TableCell align="right">{row.qty}</TableCell>
-              <TableCell align="right">{row.unit}</TableCell>
-              <TableCell align="right">{ccyFormat(row.price)}</TableCell>
+              <TableCell align="right">
+              {/* <Badge color="secondary" badgeContent={count}>
+              <p>{row.quantity}</p>
+              </Badge> */}
+              <ButtonGroup>
+                <Button
+                  aria-label="reduce"
+                  // onClick={() => {
+                  //   setCount(Math.max(count - 1, 0));
+                  // }}
+                  onClick={() => removeList(row.id)}
+                >
+                  <RemoveIcon fontSize="small" />
+                </Button>
+                <Button
+                  // aria-label="reduce"
+                  // onClick={() => {
+                  //   setCount(Math.max(count - 1, 0));
+                  // }}
+                >
+                  {row.quantity}
+                </Button>
+                <Button
+                  aria-label="increase"
+                  // onClick={() => {
+                  //   setCount(count + 1);
+                  // }}
+                  onClick={() => addList(row.id)}
+                >
+                  <AddIcon fontSize="small" />
+                </Button>
+              </ButtonGroup>
+              </TableCell>
+              <TableCell align="right">{ccyFormat(row.price*row.quantity)}</TableCell>
             </TableRow>
           ))}
-
           <TableRow>
-            <TableCell rowSpan={3} />
-            <TableCell colSpan={2}>Subtotal</TableCell>
-            <TableCell align="right">{ccyFormat(invoiceSubtotal)}</TableCell>
-          </TableRow>
-          <TableRow>
-            <TableCell>Tax</TableCell>
-            <TableCell align="right">{`${(TAX_RATE * 100).toFixed(0)} %`}</TableCell>
-            <TableCell align="right">{ccyFormat(invoiceTaxes)}</TableCell>
-          </TableRow>
-          <TableRow>
-            <TableCell colSpan={2}>Total</TableCell>
+            <TableCell>Total</TableCell>
+            <TableCell></TableCell>
             <TableCell align="right">{ccyFormat(invoiceTotal)}</TableCell>
           </TableRow>
         </TableBody>
       </Table>
     </TableContainer>
+    <Button onClick={deleteBasket}>
+        <DeleteOutlineOutlinedIcon fontSize="small" />
+        <p>Sepeti Temizle</p>
+    </Button>
+      </div>
+      
+    
+    ) : <div style={{fontSize: '2em', padding: '2em'}}> Sepetiniz Boş </div>
   )
 }
 

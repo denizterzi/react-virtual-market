@@ -7,11 +7,6 @@ import _ from 'lodash';
 
 const Categories = ({value, handleChange}) => {
   const [defaultCategories, setCategories] = useState();
-  // const [value, setValue] = React.useState(0);
-
-  // const handleChange = (event, newValue) => {
-  //   setValue(newValue);
-  // };
 
   const  getCategories = async () => {
     const result = await fetch('https://dummyjson.com/products').then(res => res.json());

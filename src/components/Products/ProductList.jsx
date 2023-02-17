@@ -8,19 +8,10 @@ import AddBoxOutlinedIcon from '@mui/icons-material/AddBoxOutlined';
 import { Tooltip } from '@mui/material';
 import { useEffect, useState } from 'react';
 import _ from 'lodash';
+import { setLocalStorage, getLocalStorage } from '../../localStorage';
+
+
 const ProductList = ({handleChange}) => {
-
-  // interface ProductCategories {
-  //   category: string;
-  //   products: [
-  //     {
-  //       title: string;
-  //       image: null;
-  //       price: number;
-  //     }
-  //   ]
-  // };
-
 
   const [itemData, setItemData] = useState();
   const [productCat, setProductCat] = useState();
@@ -28,7 +19,6 @@ const ProductList = ({handleChange}) => {
 
   const  getProducts = async () => {
     const result = await fetch('https://dummyjson.com/products').then(res => res.json());
-    console.log('res', result.products);
     setItemData(result.products);
     return result;
   }
@@ -36,14 +26,10 @@ const ProductList = ({handleChange}) => {
   const offset = 0;
 
   const isBetween = (value, floor, ceil) => {
-    // const test = value >= floor && value <= ceil;
-    // console.log('value', value);
-    return (value >= floor && value <= ceil); //|| (value <= floor && value <= ceil)
+    return (value >= floor && value <= ceil); 
   };
 
   useEffect(() => {
-    // this.handleChange = this.handleChange.bind(this);
-
     const onScroll = (e) => {
       const scroll = window.pageYOffset;
       // eslint-disable-next-line array-callback-return
@@ -58,18 +44,10 @@ const ProductList = ({handleChange}) => {
           if(isBetween(scroll, top, bottom)){
             const test = productCat.map(x => {return x.key});
             const test2 = test.findIndex(x => x === element.id);
-            // .findIndex(element.id);
             handleChange(e, test2);            
           }
 
-          //return null;
-
-          // return { id, top, bottom };
         })
-        //.find(({ top, bottom }) => isBetween(scroll, top, bottom));
-        //console.log('position', position);
-
-      //setActiveId(position?.id || "");
     };
     window.addEventListener('scroll', onScroll);
 
@@ -80,28 +58,39 @@ const ProductList = ({handleChange}) => {
   }, [productCat]);
 
   useEffect(() => {
-    // const test = _.uniqBy(itemData?.map((x) => x.category));
-    // const test2 = _.keyBy(itemData, 'category');
     var grouped = _.mapValues(_.groupBy(itemData, 'category'));
-    // var grouped = _.mapValues(_.groupBy(itemData, 'category'), x => x.map(y => _.omit(y, 'category')));
     const arr = Object.keys(grouped).map(key => ({ key, value: grouped[key] }));
-
-    // console.log('test', test);
-    // console.log('grouped',arr);
     setProductCat(arr);
-
-    // setProductCat(_.uniqBy(test))
     
   },[itemData]);
 
-  const onclickAddBtn = () => {
+  const onclickAddBtn = (val) => {
+    const currentValues = getLocalStorage('selectedProducts');
+    const newValues = currentValues ? [...currentValues, val] : [val];
+    setLocalStorage('selectedProducts', newValues)
+
+    let modifiedList = [];
+
+    const products = getLocalStorage('selectedProducts');
+    products?.filter(element => {
+        const currentVal = modifiedList.find(x => x.id === element.id);
+        if(!currentVal){
+          modifiedList.push({
+            id: element.id,
+            quantity: 1,
+            desc: element.title,
+            price: element.price
+          });
+        } else{
+          currentVal.quantity = currentVal.quantity + 1;
+        }
+        return modifiedList;
+    });
+  
+    setLocalStorage('modifiedList', modifiedList);  
+
 
   }
-
-
-  // useEffect(() => {
-  //   console.log('productCat', productCat);
-  // }, [productCat])
 
   return productCat?.length && (
     productCat.map(test => (
@@ -125,7 +114,7 @@ const ProductList = ({handleChange}) => {
                     <IconButton
                         sx={{ color: 'rgba(255, 255, 255, 0.54)' }}
                         aria-label={`info about ${item.title}`}
-                        onClick={onclickAddBtn}
+                        onClick={() => onclickAddBtn(item)}
                     >
                         <AddBoxOutlinedIcon />
                     </IconButton>
